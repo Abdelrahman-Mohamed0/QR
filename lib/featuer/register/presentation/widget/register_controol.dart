@@ -35,11 +35,11 @@ class RegisterController {
         final user = credential.user;
 
         if (user != null) {
-          // 2. إرسال رابط التفعيل فوراً إلى بريد الـ Gmail
           try {
+            await user.updateDisplayName(name);
             await user.sendEmailVerification();
           } catch (e) {
-            debugPrint("sendEmailVerification error: $e");
+            debugPrint("sendEmailVerification / updateDisplayName error: $e");
           }
 
           // 3. حفظ بيانات المستخدم في Firestore

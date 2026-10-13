@@ -5,7 +5,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:qr/core/helper/heder.dart';
 import 'package:qr/core/helper/text_scan.dart';
-import 'package:qr/core/utlis/assets.dart';
 import 'package:qr/core/utlis/router.dart' show AppRouter;
 import 'package:qr/core/utlis/style.dart';
 import 'package:qr/featuer/scanqr/presentation/widgets/heder_scan.dart';
@@ -31,23 +30,63 @@ class _ScanQrState extends State<ScanQr> {
 
   Future<void> _fetchUserName() async {
     try {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid != null) {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        // 1. فحص إذا كان الاسم محفوظ في حساب Firebase مباشرة
+        if (user.displayName != null && user.displayName!.trim().isNotEmpty) {
+          if (mounted) {
+            setState(() {
+              _userName = user.displayName!.trim();
+              _loadingName = false;
+            });
+          }
+          return;
+        }
+
+        // 2. البحث في Firestore بواسطة uid
         final doc = await FirebaseFirestore.instance
             .collection('users')
-            .doc(uid)
+            .doc(user.uid)
             .get();
+
+        String? name = doc.data()?['name'] as String?;
+
+        // 3. البحث بالبريد الإلكتروني في Firestore كخيار بديل
+        if ((name == null || name.trim().isEmpty) && user.email != null) {
+          final query = await FirebaseFirestore.instance
+              .collection('users')
+              .where('email', isEqualTo: user.email!.trim())
+              .limit(1)
+              .get();
+          if (query.docs.isNotEmpty) {
+            name = query.docs.first.data()['name'] as String?;
+          }
+        }
+
+        // 4. خيار احتياطي في حال عدم وجود الاسم
+        if (name == null || name.trim().isEmpty) {
+          name = user.email?.split('@').first;
+        }
+
         if (mounted) {
           setState(() {
-            _userName = doc.data()?['name'] as String?;
+            _userName = name;
             _loadingName = false;
           });
         }
       } else {
         if (mounted) setState(() => _loadingName = false);
       }
-    } catch (_) {
-      if (mounted) setState(() => _loadingName = false);
+    } catch (e) {
+      debugPrint("Error fetching user name: $e");
+      final user = FirebaseAuth.instance.currentUser;
+      final fallback = user?.displayName ?? user?.email?.split('@').first;
+      if (mounted) {
+        setState(() {
+          _userName = fallback;
+          _loadingName = false;
+        });
+      }
     }
   }
 
@@ -61,7 +100,6 @@ class _ScanQrState extends State<ScanQr> {
     return Scaffold(
       backgroundColor: Colors.black,
       body: Heder(
-        image: AssetsData.p2,
         topContent: _UserGreeting(
           userName: _userName,
           loading: _loadingName,
@@ -110,31 +148,31 @@ class _UserGreeting extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String initial = (userName != null && userName!.isNotEmpty)
-        ? userName![0]
+    final String initial = (userName != null && userName!.trim().isNotEmpty)
+        ? userName!.trim()[0].toUpperCase()
         : '؟';
-    final String greeting = loading
-        ? ''
-        : userName != null
-        ? 'أهلاً، $userName 👋'
-        : 'أهلاً بك!';
+
+    // النص الترحيبي بجانب كلمة "أهلاً بك"
+    final String greeting = (userName != null && userName!.trim().isNotEmpty)
+        ? 'أهلاً بك، $userName 👋'
+        : 'أهلاً بك 👋';
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
       child: Row(
         children: [
-          // Avatar circle
+          // دائرة الحرف الأول (الأفاتار)
           Container(
-            width: 46.r,
-            height: 46.r,
+            width: 44.r,
+            height: 44.r,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: Styles.kPrimaryColor,
               boxShadow: [
                 BoxShadow(
                   color: Styles.kPrimaryColor.withOpacity(0.4),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
                 ),
               ],
             ),
@@ -158,10 +196,20 @@ class _UserGreeting extends StatelessWidget {
                   ),
           ),
           SizedBox(width: 12.w),
-          // Greeting text
+          // نص الترحيب
           Expanded(
             child: loading
-                ? const SizedBox()
+                ? Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: SizedBox(
+                      width: 16.w,
+                      height: 16.w,
+                      child: const CircularProgressIndicator(
+                        color: Colors.white54,
+                        strokeWidth: 2,
+                      ),
+                    ),
+                  )
                 : Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -185,13 +233,13 @@ class _UserGreeting extends StatelessWidget {
                     ],
                   ),
           ),
-          // Logout button
+          // زر تسجيل الخروج
           GestureDetector(
             onTap: onLogout,
             child: Container(
               padding: EdgeInsets.all(8.r),
               decoration: BoxDecoration(
-                color: Colors.white10,
+                color: Colors.white12,
                 borderRadius: BorderRadius.circular(10.r),
               ),
               child: Icon(

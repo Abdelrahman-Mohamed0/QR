@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:qr/core/helper/custom_button.dart';
 import 'package:qr/core/helper/heder.dart';
 import 'package:qr/core/helper/text_scan.dart';
@@ -16,19 +17,20 @@ class ResultScanView extends StatelessWidget {
         body: SingleChildScrollView(
           child: Column(
             children: [
-              TextScan(
-                text1: 'Scanning Result',
+              const TextScan(
+                text1: 'سجل نتائج المسح',
                 text2:
-                    'Proreader will keep your last 10 days history.\nPlease purchase our pro package for unlimited history.',
+                    'يتم حفظ سجلات الأكواد التي تم مسحها هنا تلقائياً لسهولة الرجوع إليها.',
               ),
-              ResultComponents(),
-              const SizedBox(height: 20),
+              const ResultComponents(),
+              SizedBox(height: 20.h),
               CustomButton(
-                text: 'Back',
+                text: 'العودة',
                 onPressed: () {
                   Navigator.pop(context);
                 },
               ),
+              SizedBox(height: 20.h),
             ],
           ),
         ),

@@ -51,7 +51,7 @@ class ResultComponents extends StatelessWidget {
           return const Center(child: CircularProgressIndicator());
         }
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(child: Text("No scans yet"));
+          return const Center(child: Text("لا توجد نتائج مسح سابقة"));
         }
 
         final docs = snapshot.data!.docs;
@@ -59,9 +59,7 @@ class ResultComponents extends StatelessWidget {
         return SizedBox(
           height: MediaQuery.of(context).size.height * 0.5,
           child: ListView.builder(
-                //   
-            shrinkWrap: true, // مهم جدًا مع SingleChildScrollView
-                //    physics: const NeverScrollableScrollPhysics(), // علشان ما يحصلش تعارض في السكرول
+            shrinkWrap: true,
             itemCount: docs.length,
             itemBuilder: (context, index) {
               final data = docs[index].data() as Map<String, dynamic>;
@@ -71,14 +69,17 @@ class ResultComponents extends StatelessWidget {
               return GestureDetector(
                 onTap: () async {
                   if (isLink) {
-                    print('🔗 Trying to open: $result');
                     await _openURL(result);
                   } else {
                     await Clipboard.setData(ClipboardData(text: result));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Copied to clipboard')),
-                    );
-                    print('📋 Copied: $result');
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('تم نسخ النص إلى الحافظة بنجاح'),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    }
                   }
                 },
                 child: ResultCard(

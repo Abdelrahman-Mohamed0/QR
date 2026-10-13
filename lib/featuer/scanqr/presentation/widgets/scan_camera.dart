@@ -27,7 +27,10 @@ class _ScanPageState extends State<ScanPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("QR Scanner")),
+      appBar: AppBar(
+        title: const Text("ماسح الرمز السريع (QR)"),
+        centerTitle: true,
+      ),
       body: MobileScanner(controller: _scannerController, onDetect: _onDetect),
     );
   }

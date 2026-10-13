@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:qr/core/helper/custom_button.dart';
 
 class ChangePasswordPage extends StatefulWidget {
@@ -11,43 +12,67 @@ class ChangePasswordPage extends StatefulWidget {
 
 class _ChangePasswordPageState extends State<ChangePasswordPage> {
   final TextEditingController passwordController = TextEditingController();
+  bool _isLoading = false;
 
   Future<void> _changePassword() async {
+    final newPass = passwordController.text.trim();
+    if (newPass.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("يجب ألا تقل كلمة المرور عن 6 أحرف")),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
     try {
-      await FirebaseAuth.instance.currentUser!
-          .updatePassword(passwordController.text.trim());
+      await FirebaseAuth.instance.currentUser!.updatePassword(newPass);
+      setState(() => _isLoading = false);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("   success shange password")),
-      );
-
-      Navigator.pop(context); 
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("تم تغيير كلمة المرور بنجاح")),
+        );
+        Navigator.pop(context);
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(" failed shange password")),
-      );
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("فشل تغيير كلمة المرور: $e")),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("  Change Password")),
+      appBar: AppBar(
+        title: const Text("تعيين كلمة مرور جديدة"),
+        centerTitle: true,
+      ),
       body: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(24.w),
         child: Column(
           children: [
             TextField(
               controller: passwordController,
-              decoration: const InputDecoration(
-                labelText: "  Enter your new password",
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: "كلمة المرور الجديدة",
+                hintText: "••••••••",
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14.r),
+                ),
               ),
               obscureText: true,
             ),
-            const SizedBox(height: 20),
-            CustomButton(text: 'save', onPressed: _changePassword),
-         
+            SizedBox(height: 24.h),
+            CustomButton(
+              text: 'حفظ كلمة المرور',
+              isLoading: _isLoading,
+              onPressed: _changePassword,
+            ),
           ],
         ),
       ),

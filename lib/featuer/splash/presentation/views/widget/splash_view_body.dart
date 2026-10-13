@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
@@ -45,8 +46,8 @@ class _SplashViewbodyState extends State<SplashViewbody>
               children: [
                 SvgPicture.asset(AssetsData.qr, width: 150, height: 150),
                 const SizedBox(height: 16),
-                Text(
-                  "QR Scanner",
+                const Text(
+                  "ماسح الرمز QR",
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -81,8 +82,23 @@ class _SplashViewbodyState extends State<SplashViewbody>
   }
 
   void navigateToHome() {
-    Future.delayed(const Duration(seconds: 3), () {
-      GoRouter.of(context).push(AppRouter.kLoginView);
+    Future.delayed(const Duration(seconds: 3), () async {
+      if (mounted) {
+        User? user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          try {
+            await user.reload();
+            user = FirebaseAuth.instance.currentUser;
+          } catch (_) {}
+          if (user != null && user.emailVerified && mounted) {
+            context.go(AppRouter.kScanqr);
+            return;
+          }
+        }
+        if (mounted) {
+          context.go(AppRouter.kLoginView);
+        }
+      }
     });
   }
 }
